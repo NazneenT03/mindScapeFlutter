@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mindscape/pages/login_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+
 
 class AccountSettings extends StatelessWidget {
   @override
@@ -62,9 +66,31 @@ class AccountSettings extends StatelessWidget {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              onPressed: () {
-                                // Add your delete account logic here
-                                Navigator.of(context).pop();
+                              onPressed:  () async {
+                                final SharedPreferences prefs = await SharedPreferences.getInstance();
+                                String? token = prefs.getString('token');
+                                if (token == null) return;
+
+                                final response = await http.delete(
+                                  Uri.parse(
+                                    'https://sixosi6856.pythonanywhere.com/api/accounts/delete/'), // Replace with your Django backend URL
+                                  headers: <String, String>{
+                                    'Content-Type': 'application/json; charset=UTF-8',
+                                    'Authorization': 'token $token',
+                                  },
+                                );
+                                if (response.statusCode == 200) {
+                                  print('Request sent successfully.');
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (builder) => LoginPage()));
+                                  await prefs.remove('token');
+                                } else {
+                                  print('Failed to send request. Status code: ${response.statusCode}');
+                                }
+
+                   
                               },
                             ),
                           ),

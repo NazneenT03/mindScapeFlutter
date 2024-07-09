@@ -6,6 +6,8 @@ import 'package:mindscape/pages/home_page.dart'; // Import the home page
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
@@ -21,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://mind-scape-django.vercel.app/login/'), // Replace with your Django backend URL
+            'https://sixosi6856.pythonanywhere.com/api/accounts/login/'), // Replace with your Django backend URL
         headers: {
           'Content-Type': 'application/json', // Specify the content-type
         },
@@ -35,14 +37,16 @@ class _LoginPageState extends State<LoginPage> {
         // Registration successful
         Map<String, dynamic> user = jsonDecode(response.body);
         print(user);
-        if (user['data'] == 'user not exists') {
+        if (user['detail'] == 'Invalid Credentials') {
           throw ('user not');
         } else {
+          final SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', user['token']);
           Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (context) =>
-                    MoodPage(username: user['data']['user_name'],email: user['data']['email'])),
+                    MoodPage(username: user['username'], email: user['email'])),
           );
         }
         print('User registered successfully');
@@ -103,10 +107,8 @@ class _LoginPageState extends State<LoginPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => MoodPage(
-                                username: '',
-                                email:''
-                              )),
+                          builder: (context) =>
+                              MoodPage(username: '', email: '')),
                     );
                   },
                   child: ElevatedButton(

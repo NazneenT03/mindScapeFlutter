@@ -1,5 +1,7 @@
 // ignore_for_file: unused_field, unused_import
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Add this line for date formatting
 import 'package:image_picker/image_picker.dart';
@@ -9,16 +11,20 @@ import 'package:mindscape/pages/journal.dart';
 import 'package:mindscape/pages/login_page.dart';
 import 'package:mindscape/pages/talk_to_expert.dart';
 import 'package:mindscape/pages/therapy.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'accountsettings.dart';
 import 'profile.dart';
 import 'package:mindscape/pages/micro_reads.dart';
 import 'package:mindscape/pages/deep_breathe.dart';
+import 'package:http/http.dart' as http;
 
 class MoodPage extends StatefulWidget {
   final String username;
   final String email;
-  MoodPage({required this.username,required this.email}); // Define the username parameter
+  MoodPage(
+      {required this.username,
+      required this.email}); // Define the username parameter
 
   @override
   _MoodPageState createState() => _MoodPageState();
@@ -164,7 +170,9 @@ class _MoodPageState extends State<MoodPage> {
         ],
       ),
       drawer: NavigationDrawer(
-        showImagePickerOptions: _showImagePickerOptions, username: '', email: '',
+        showImagePickerOptions: _showImagePickerOptions,
+        username: '',
+        email: '',
       ),
       body: Column(
         children: [
@@ -407,7 +415,10 @@ class NavigationDrawer extends StatelessWidget {
   final String username;
   final String email;
 
-  NavigationDrawer({required this.showImagePickerOptions, required this.username, required this.email});
+  NavigationDrawer(
+      {required this.showImagePickerOptions,
+      required this.username,
+      required this.email});
 
   @override
   Widget build(BuildContext context) {
@@ -447,7 +458,11 @@ class NavigationDrawer extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ProfileScreen(username: username, email: email,)),
+                MaterialPageRoute(
+                    builder: (context) => ProfileScreen(
+                          username: username,
+                          email: email,
+                        )),
               );
             },
           ),
@@ -479,11 +494,31 @@ class NavigationDrawer extends StatelessWidget {
                             ),
                             TextButton(
                               child: Text('Sign Out'),
-                              onPressed: () {
-                                Navigator.push(
+                              onPressed: () async {
+                                final SharedPreferences prefs = await SharedPreferences.getInstance();
+                                String? token = prefs.getString('token');
+                                await prefs.remove('token');
+                                if (token == null) return;
+
+                                final response = await http.post(
+                                  Uri.parse(
+                                    'https://sixosi6856.pythonanywhere.com/api/accounts/logout/'), // Replace with your Django backend URL
+                                  headers: <String, String>{
+                                    'Content-Type': 'application/json; charset=UTF-8',
+                                    'Authorization': 'token $token',
+                                  },
+                                );
+                                if (response.statusCode == 200) {
+                                  print('Request sent successfully.');
+                                  Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                         builder: (builder) => LoginPage()));
+                                } else {
+                                  print('Failed to send request. Status code: ${response.statusCode}');
+                                }
+
+                                
                               },
                             ),
                           ],
@@ -506,10 +541,7 @@ void main() {
     debugShowCheckedModeBanner: false,
     initialRoute: '/',
     routes: {
-      '/': (context) => MoodPage(
-            username: '',
-            email:''
-          ),
+      '/': (context) => MoodPage(username: '', email: ''),
       '/explore': (context) => HomeScreen(),
       '/journal': (context) => MyJournalPage(),
       '/calendar': (context) => GoalCalendarPage(),

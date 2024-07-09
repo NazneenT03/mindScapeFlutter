@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:mindscape/pages/home_page.dart';
+import 'package:mindscape/pages/login_page.dart';
 import 'package:mindscape/pages/profile.dart';
 import 'package:mindscape/reusable_widgets/reusable_widgets.dart';
 import 'package:mindscape/utilities/colors_util.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -22,7 +25,7 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://mind-scape-django.vercel.app/signup/'), // Replace with your Django backend URL
+            'https://sixosi6856.pythonanywhere.com/api/accounts/register/'), // Replace with your Django backend URL
         headers: {
           'Content-Type': 'application/json', // Specify the content-type
         },
@@ -32,16 +35,18 @@ class _SignUpPageState extends State<SignUpPage> {
           'password': password,
         }),
       );
-
-      if (response.statusCode == 200) {
+      print(response.statusCode);
+      if (response.statusCode == 201) {
         // Registration successful
         Map<String, dynamic> userData = jsonDecode(response.body);
-        String username = userData['username'];
-        String email = userData['email'];
+        String username = userData['data']['username'];
+        String email = userData['data']['email'];
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', userData['token']);
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProfileScreen(
+            builder: (context) => MoodPage(
               username: username,
               email: email,
             ),
